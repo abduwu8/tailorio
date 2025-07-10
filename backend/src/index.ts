@@ -96,7 +96,7 @@ const upload = multer({
 
 // Middleware
 const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? ['https://tailorio.onrender.com']
+  ? [process.env.RENDER_EXTERNAL_URL || '*'] // Allow the Render URL or any origin in production
   : ['http://localhost:3000', 'http://localhost:5173'];
 
 console.log('Allowed Origins:', allowedOrigins);
@@ -111,6 +111,11 @@ app.use(cors({
     }
     
     console.log('Request origin:', origin);
+    // In production, allow all origins since we're using relative URLs
+    if (process.env.NODE_ENV === 'production' || allowedOrigins.includes('*')) {
+      return callback(null, true);
+    }
+    
     if (allowedOrigins.indexOf(origin) === -1) {
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
       console.log('CORS blocked:', origin);

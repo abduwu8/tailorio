@@ -1,6 +1,7 @@
 // Get the base URL from environment variable or use a default
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 
-  (import.meta.env.PROD ? 'https://tailorio.onrender.com' : 'http://localhost:5000');
+export const API_BASE_URL = import.meta.env.PROD 
+  ? '' // Use relative URLs in production
+  : (import.meta.env.VITE_API_URL || 'http://localhost:5000');
 
 // Helper function to build API URLs
 export const buildApiUrl = (path: string): string => {
