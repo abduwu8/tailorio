@@ -13,7 +13,9 @@ interface JobDetails {
 
 export async function scrapeLinkedInJob(jobUrl: string): Promise<JobDetails> {
   console.log('Initializing Puppeteer...');
-  const browser = await puppeteer.launch({
+  console.log('Chrome executable path:', process.env.PUPPETEER_EXECUTABLE_PATH);
+  
+  const options = {
     headless: true,
     args: [
       '--no-sandbox',
@@ -27,8 +29,11 @@ export async function scrapeLinkedInJob(jobUrl: string): Promise<JobDetails> {
       '--disable-web-security',
       '--disable-features=IsolateOrigins,site-per-process'
     ],
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
-  });
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH
+  };
+
+  console.log('Launching browser with options:', JSON.stringify(options, null, 2));
+  const browser = await puppeteer.launch(options);
 
   try {
     console.log('Creating new page...');
