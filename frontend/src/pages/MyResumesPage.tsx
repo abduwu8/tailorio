@@ -22,7 +22,7 @@ const MyResumesPage = () => {
 
   const fetchResumes = async () => {
     try {
-      const response = await fetch('http://localhost:5000/resumes', {
+      const response = await fetch('http://localhost:5000/api/resumes', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -64,7 +64,7 @@ const MyResumesPage = () => {
     try {
       setUploadStatus('Uploading...');
 
-      const response = await fetch('http://localhost:5000/upload-resume', {
+      const response = await fetch('http://localhost:5000/api/upload-resume', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -98,7 +98,7 @@ const MyResumesPage = () => {
 
     try {
       setDeleteStatus('Deleting...');
-      const response = await fetch(`http://localhost:5000/resumes/${resumeId}`, {
+      const response = await fetch(`http://localhost:5000/api/resumes/${resumeId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
