@@ -1,4 +1,5 @@
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
+import type { Browser } from 'puppeteer-core';
 
 interface JobDetails {
   title: string;
@@ -13,27 +14,31 @@ interface JobDetails {
 
 export async function scrapeLinkedInJob(jobUrl: string): Promise<JobDetails> {
   console.log('Initializing Puppeteer...');
-  console.log('Chrome executable path:', process.env.PUPPETEER_EXECUTABLE_PATH);
   
-  const options = {
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
-      '--no-first-run',
-      '--no-zygote',
-      '--disable-gpu',
-      '--single-process',
-      '--disable-web-security',
-      '--disable-features=IsolateOrigins,site-per-process'
-    ],
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH
-  };
-
-  console.log('Launching browser with options:', JSON.stringify(options, null, 2));
-  const browser = await puppeteer.launch(options);
+  let browser: Browser;
+  
+  try {
+    // Try to use the environment-provided Chrome path first
+    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium';
+    console.log('Using Chrome executable path:', executablePath);
+    
+    browser = await puppeteer.launch({
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-software-rasterizer',
+        '--disable-features=site-per-process',
+        '--disable-extensions'
+      ],
+      executablePath,
+      headless: true
+    });
+  } catch (error) {
+    console.error('Failed to initialize Chrome with provided path:', error);
+    throw new Error('Failed to initialize Chrome. Please ensure Chrome/Chromium is installed and the path is correct.');
+  }
 
   try {
     console.log('Creating new page...');
