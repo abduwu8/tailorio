@@ -1,5 +1,5 @@
-import puppeteer from 'puppeteer';
-import type { Browser } from 'puppeteer';
+import puppeteer from 'puppeteer-core';
+import type { Browser } from 'puppeteer-core';
 
 interface JobDetails {
   title: string;
@@ -13,33 +13,25 @@ interface JobDetails {
 }
 
 export async function scrapeLinkedInJob(jobUrl: string): Promise<JobDetails> {
-  console.log('Initializing Puppeteer...');
+  console.log('Initializing Puppeteer with Browserless...');
   
   let browser: Browser;
   
   try {
-    browser = await puppeteer.launch({
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--disable-software-rasterizer',
-        '--disable-features=site-per-process',
-        '--disable-extensions',
-        '--window-size=1920,1080',
-        '--hide-scrollbars',
-        '--disable-notifications'
-      ],
-      headless: true,
+    // Connect to Browserless.io
+    const browserWSEndpoint = `wss://chrome.browserless.io?token=${process.env.BROWSERLESS_API_KEY}`;
+    browser = await puppeteer.connect({
+      browserWSEndpoint,
       defaultViewport: {
         width: 1920,
         height: 1080
       }
     });
+
+    console.log('Connected to Browserless successfully');
   } catch (error) {
-    console.error('Failed to initialize Chrome:', error);
-    throw new Error('Failed to initialize Chrome. Please check the error logs for more details.');
+    console.error('Failed to connect to Browserless:', error);
+    throw new Error('Failed to connect to browser service. Please check your API key and try again.');
   }
 
   try {
