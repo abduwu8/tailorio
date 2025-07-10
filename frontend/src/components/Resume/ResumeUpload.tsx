@@ -38,18 +38,33 @@ const ResumeUpload = () => {
   const fetchResumes = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(buildApiUrl('/resumes'), {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch resumes');
+      if (!token) {
+        throw new Error('No authentication token found');
       }
+      
+      console.log('Fetching resumes from:', buildApiUrl('/api/resumes'));
+      const response = await fetch(buildApiUrl('/api/resumes'), {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        },
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to fetch resumes: ${response.status}`);
+      }
+
       const data = await response.json();
+      console.log('Fetched resumes:', data);
       setResumes(data);
     } catch (error) {
       console.error('Error fetching resumes:', error);
+      setUploadState(prev => ({
+        ...prev,
+        uploadStatus: error instanceof Error ? error.message : 'Failed to fetch resumes'
+      }));
     }
   };
 
@@ -94,25 +109,35 @@ const ResumeUpload = () => {
       }));
 
       const token = localStorage.getItem('token');
-      const response = await fetch(buildApiUrl('/upload-resume'), {
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      console.log('Uploading resume to:', buildApiUrl('/api/upload-resume'));
+      const response = await fetch(buildApiUrl('/api/upload-resume'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
         },
+        credentials: 'include',
         body: formData,
       });
 
-      if (response.ok) {
-        setUploadState({
-          file: null,
-          preview: null,
-          uploadStatus: 'File uploaded successfully!'
-        });
-        fetchResumes();
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Upload failed');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Upload failed: ${response.status}`);
       }
+
+      const data = await response.json();
+      console.log('Upload response:', data);
+
+      setUploadState({
+        file: null,
+        preview: null,
+        uploadStatus: 'File uploaded successfully!'
+      });
+      
+      await fetchResumes();
     } catch (error) {
       console.error('Upload error:', error);
       setUploadState(prev => ({

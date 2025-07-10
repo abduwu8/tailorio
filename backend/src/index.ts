@@ -96,7 +96,7 @@ const upload = multer({
 
 // Middleware
 const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? [process.env.FRONTEND_URL || '', process.env.RENDER_EXTERNAL_URL || '', 'https://tailorio.onrender.com']
+  ? ['https://tailorio.onrender.com']
   : ['http://localhost:3000', 'http://localhost:5173'];
 
 console.log('Allowed Origins:', allowedOrigins);
@@ -118,13 +118,16 @@ app.use(cors({
     }
     return callback(null, true);
   },
-  methods: ['GET', 'POST', 'DELETE', 'OPTIONS', 'PUT', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
   credentials: true,
-  optionsSuccessStatus: 204
+  maxAge: 86400,
+  optionsSuccessStatus: 200
 }));
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Initialize Passport
 app.use(passport.initialize());
@@ -135,7 +138,10 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-// API Routes - Mount them before static file serving
+// Serve uploads directory - Move this before API routes to ensure file access
+app.use('/uploads', express.static(uploadsDir));
+
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/linkedin', linkedinRoutes);
 
@@ -306,9 +312,6 @@ app.delete('/api/resumes/:id', requireAuth, async (req: Request, res: Response) 
     res.status(500).json({ error: 'Error deleting resume' });
   }
 });
-
-// Serve uploads directory
-app.use('/uploads', express.static(uploadsDir));
 
 // Connect to MongoDB
 connectDB().then(() => {
