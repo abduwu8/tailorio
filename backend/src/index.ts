@@ -62,7 +62,7 @@ const upload = multer({
 
 // Middleware
 const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? ['https://tailorio.onrender.com']
+  ? [process.env.FRONTEND_URL || '', process.env.RENDER_EXTERNAL_URL || '']
   : ['http://localhost:3000', 'http://localhost:5173'];
 
 console.log('Allowed Origins:', allowedOrigins);

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import ResumeText from './ResumeText';
-import { buildApiUrl } from '../../config/api';
+import { buildApiUrl, buildFileUrl } from '../../config/api';
 
 interface FileUploadState {
   file: File | null;
@@ -21,7 +21,6 @@ interface ResumeData {
   };
 }
 
-
 const ResumeUpload = () => {
   const [uploadState, setUploadState] = useState<FileUploadState>({
     file: null,
@@ -38,9 +37,10 @@ const ResumeUpload = () => {
 
   const fetchResumes = async () => {
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch(buildApiUrl('/resumes'), {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         }
       });
       if (!response.ok) {
@@ -93,10 +93,11 @@ const ResumeUpload = () => {
         uploadStatus: 'Uploading...'
       }));
 
+      const token = localStorage.getItem('token');
       const response = await fetch(buildApiUrl('/upload-resume'), {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
         body: formData,
       });
@@ -109,12 +110,14 @@ const ResumeUpload = () => {
         });
         fetchResumes();
       } else {
-        throw new Error('Upload failed');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Upload failed');
       }
     } catch (error) {
+      console.error('Upload error:', error);
       setUploadState(prev => ({
         ...prev,
-        uploadStatus: 'Failed to upload file'
+        uploadStatus: error instanceof Error ? error.message : 'Failed to upload file'
       }));
     }
   };
@@ -236,7 +239,9 @@ const ResumeUpload = () => {
             {viewMode === 'pdf' ? (
               <div className="h-[600px]">
                 <iframe
-                  src={selectedResume ? buildApiUrl(selectedResume.path) + `?token=${localStorage.getItem('token')}` : uploadState.preview || ''}
+                  src={selectedResume 
+                    ? buildFileUrl(selectedResume.path, localStorage.getItem('token') || undefined)
+                    : uploadState.preview || ''}
                   className="w-full h-full"
                   title="Resume Preview"
                 />
@@ -255,45 +260,44 @@ const ResumeUpload = () => {
         </div>
       )}
 
-      {/* Uploaded Resumes List */}
-      {resumes.length > 0 && (
-        <div className="border border-gray-200 rounded-lg overflow-hidden">
-          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Uploaded Resumes</h3>
-          </div>
-          <div className="divide-y divide-gray-200">
-            {resumes.map(resume => (
-              <div
-                key={resume.id}
-                className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <span className="text-sm text-gray-900">{resume.originalName}</span>
-                  {resume.textAnalysis && (
-                    <span className="text-xs text-gray-500">
-                      ({resume.textAnalysis.wordCount.toLocaleString()} words)
-                    </span>
-                  )}
+      {/* Resumes List */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium text-gray-900">Your Resumes</h3>
+        <div className="space-y-2">
+          {resumes.map(resume => (
+            <div
+              key={resume.id}
+              className="border border-gray-200 rounded-md p-4 hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex justify-between items-center">
+                <div>
+                  <h4 className="font-medium text-gray-900">{resume.originalName}</h4>
+                  <p className="text-sm text-gray-500">
+                    Uploaded on {new Date(resume.uploadDate).toLocaleDateString()}
+                  </p>
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => handlePreviewResume(resume)}
-                    className="text-sm text-gray-600 hover:text-black transition-colors"
+                    className="text-sm font-medium text-gray-600 hover:text-gray-900"
                   >
                     View PDF
                   </button>
                   <button
                     onClick={() => handleViewText(resume)}
-                    className="text-sm text-gray-600 hover:text-black transition-colors"
+                    className="text-sm font-medium text-gray-600 hover:text-gray-900"
                   >
                     View Text
                   </button>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
+          {resumes.length === 0 && (
+            <p className="text-gray-500 text-center py-4">No resumes uploaded yet</p>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };
