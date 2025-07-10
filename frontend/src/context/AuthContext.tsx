@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { buildApiUrl } from '../config/api';
 
 interface User {
   id: string;
@@ -38,12 +39,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch(buildApiUrl('/auth/login'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password }),
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -67,12 +69,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch(buildApiUrl('/auth/register'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password, name }),
+        credentials: 'include',
       });
 
       const data = await response.json();
