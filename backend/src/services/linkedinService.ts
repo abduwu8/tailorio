@@ -19,7 +19,7 @@ export async function scrapeLinkedInJob(jobUrl: string): Promise<JobDetails> {
   
   try {
     // Try to use the environment-provided Chrome path first
-    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium';
+    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser';
     console.log('Using Chrome executable path:', executablePath);
     
     browser = await puppeteer.launch({
