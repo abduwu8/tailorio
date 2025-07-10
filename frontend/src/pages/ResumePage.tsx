@@ -8,6 +8,9 @@ import TailoredResume from '../components/Resume/TailoredResume';
 import Card from '../components/Layout/Card';
 import { tailorResume } from '../services/groqService';
 import { updatePDFWithTailoredText } from '../services/pdfService';
+import { buildApiUrl, buildFileUrl } from '../config/api';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface ResumeData {
   id: string;
@@ -31,17 +34,22 @@ const ResumePage = () => {
   const [tailoringError, setTailoringError] = useState<string>('');
   const [modifiedPdfUrl, setModifiedPdfUrl] = useState<string | null>(null);
   const [isUpdatingPdf, setIsUpdatingPdf] = useState(false);
+  const { token, logout } = useAuth();
+  const navigate = useNavigate();
 
   const fetchResumes = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/resumes', {
+      const response = await fetch(buildApiUrl('/resumes'), {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         }
       });
       if (response.ok) {
         const data = await response.json();
         setResumes(data);
+      } else if (response.status === 401) {
+        logout();
+        navigate('/login');
       }
     } catch (error) {
       console.error('Error fetching resumes:', error);
@@ -49,8 +57,12 @@ const ResumePage = () => {
   };
 
   useEffect(() => {
+    if (!token) {
+      navigate('/login');
+      return;
+    }
     fetchResumes();
-  }, []);
+  }, [token, navigate]);
 
   const handleResumeSelect = async (resumeId: string) => {
     const selected = resumes.find(resume => resume.id === resumeId);
@@ -60,7 +72,7 @@ const ResumePage = () => {
   };
 
   const handleTailorResume = async () => {
-    if (!selectedResume || !selectedRole) {
+    if (!selectedResume || !selectedRole || !token) {
       setTailoringError('Please select both a resume and a target role');
       return;
     }
@@ -82,7 +94,8 @@ const ResumePage = () => {
       setTailoredText(tailoredContent);
       
       setIsUpdatingPdf(true);
-      const pdfUrl = `http://localhost:5000${selectedResume.path}?token=${localStorage.getItem('token')}`;
+      // Convert null token to undefined for buildFileUrl
+      const pdfUrl = buildFileUrl(selectedResume.path, token || undefined);
       const modifiedPdfBlob = await updatePDFWithTailoredText(pdfUrl, tailoredContent);
       const modifiedUrl = URL.createObjectURL(modifiedPdfBlob);
       setModifiedPdfUrl(modifiedUrl);
@@ -98,10 +111,10 @@ const ResumePage = () => {
   const handleLinkedInJobScraped = (data: any) => {
     setTailoredText(data.tailoredResume);
     
-    if (selectedResume) {
+    if (selectedResume && token) {
       setIsUpdatingPdf(true);
       updatePDFWithTailoredText(
-        `http://localhost:5000${selectedResume.path}?token=${localStorage.getItem('token')}`,
+        buildFileUrl(selectedResume.path, token || undefined),
         data.tailoredResume
       )
         .then(modifiedPdfBlob => {
@@ -117,6 +130,10 @@ const ResumePage = () => {
         });
     }
   };
+
+  if (!token) {
+    return null;
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl pb-24" data-testid="resume-page" data-fetch-resumes={fetchResumes}>

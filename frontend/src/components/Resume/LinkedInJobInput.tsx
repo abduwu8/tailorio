@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import Card from '../Layout/Card';
+import { buildApiUrl } from '../../config/api';
+import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface LinkedInJobInputProps {
   onJobScraped: (data: any) => void;
@@ -16,6 +19,8 @@ const LinkedInJobInput: React.FC<LinkedInJobInputProps> = ({
   const [jobUrl, setJobUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { token, logout } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,23 +29,34 @@ const LinkedInJobInput: React.FC<LinkedInJobInputProps> = ({
       return;
     }
 
+    if (!token) {
+      logout();
+      navigate('/login');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:5000/api/linkedin/scrape-and-tailor', {
+      const response = await fetch(buildApiUrl('/linkedin/scrape-and-tailor'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          linkedinUrl: jobUrl, // Updated to match backend expected field name
+          linkedinUrl: jobUrl,
           resumeText: selectedResume.extractedText,
         }),
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          logout();
+          navigate('/login');
+          return;
+        }
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to process LinkedIn job posting');
       }
