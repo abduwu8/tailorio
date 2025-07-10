@@ -1,5 +1,5 @@
-import puppeteer from 'puppeteer-core';
-import type { Browser } from 'puppeteer-core';
+import puppeteer from 'puppeteer';
+import type { Browser } from 'puppeteer';
 
 interface JobDetails {
   title: string;
@@ -18,10 +18,6 @@ export async function scrapeLinkedInJob(jobUrl: string): Promise<JobDetails> {
   let browser: Browser;
   
   try {
-    // Try to use the environment-provided Chrome path first
-    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable';
-    console.log('Using Chrome executable path:', executablePath);
-    
     browser = await puppeteer.launch({
       args: [
         '--no-sandbox',
@@ -35,7 +31,6 @@ export async function scrapeLinkedInJob(jobUrl: string): Promise<JobDetails> {
         '--hide-scrollbars',
         '--disable-notifications'
       ],
-      executablePath,
       headless: true,
       defaultViewport: {
         width: 1920,
@@ -43,8 +38,8 @@ export async function scrapeLinkedInJob(jobUrl: string): Promise<JobDetails> {
       }
     });
   } catch (error) {
-    console.error('Failed to initialize Chrome with provided path:', error);
-    throw new Error('Failed to initialize Chrome. Please ensure Chrome/Chromium is installed and the path is correct.');
+    console.error('Failed to initialize Chrome:', error);
+    throw new Error('Failed to initialize Chrome. Please check the error logs for more details.');
   }
 
   try {
