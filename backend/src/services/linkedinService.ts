@@ -19,7 +19,7 @@ export async function scrapeLinkedInJob(jobUrl: string): Promise<JobDetails> {
   
   try {
     // Try to use the environment-provided Chrome path first
-    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser';
+    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable';
     console.log('Using Chrome executable path:', executablePath);
     
     browser = await puppeteer.launch({
@@ -30,10 +30,17 @@ export async function scrapeLinkedInJob(jobUrl: string): Promise<JobDetails> {
         '--disable-gpu',
         '--disable-software-rasterizer',
         '--disable-features=site-per-process',
-        '--disable-extensions'
+        '--disable-extensions',
+        '--window-size=1920,1080',
+        '--hide-scrollbars',
+        '--disable-notifications'
       ],
       executablePath,
-      headless: true
+      headless: true,
+      defaultViewport: {
+        width: 1920,
+        height: 1080
+      }
     });
   } catch (error) {
     console.error('Failed to initialize Chrome with provided path:', error);
