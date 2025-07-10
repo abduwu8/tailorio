@@ -39,6 +39,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     setError(null);
     try {
+      console.log('Attempting login to:', buildApiUrl('/auth/login'));
       const response = await fetch(buildApiUrl('/auth/login'), {
         method: 'POST',
         headers: {
@@ -48,10 +49,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         credentials: 'include',
       });
 
-      const data = await response.json();
+      console.log('Login response status:', response.status);
+      const data = await response.json().catch(e => {
+        console.error('Error parsing JSON:', e);
+        throw new Error('Failed to parse server response');
+      });
+      console.log('Login response data:', data);
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to login');
+        throw new Error(data.message || `Login failed with status ${response.status}`);
       }
 
       setToken(data.token);
@@ -59,7 +65,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Login error:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred during login');
+      // Clear any existing auth data on error
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setToken(null);
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
@@ -69,6 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     setError(null);
     try {
+      console.log('Attempting registration to:', buildApiUrl('/auth/register'));
       const response = await fetch(buildApiUrl('/auth/register'), {
         method: 'POST',
         headers: {
@@ -78,10 +91,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         credentials: 'include',
       });
 
-      const data = await response.json();
+      console.log('Registration response status:', response.status);
+      const data = await response.json().catch(e => {
+        console.error('Error parsing JSON:', e);
+        throw new Error('Failed to parse server response');
+      });
+      console.log('Registration response data:', data);
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to register');
+        throw new Error(data.message || `Registration failed with status ${response.status}`);
       }
 
       setToken(data.token);
@@ -89,7 +107,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Registration error:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred during registration');
+      // Clear any existing auth data on error
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setToken(null);
+      setUser(null);
     } finally {
       setIsLoading(false);
     }

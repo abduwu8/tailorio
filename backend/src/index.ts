@@ -1,4 +1,4 @@
-import express, { Express, Request, Response } from 'express';
+import express, { Express, Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import connectDB from './config/database';
@@ -16,7 +16,16 @@ import { requireAuth } from './middleware/auth';
 // Import passport config
 import './config/passport';
 
+// Load environment variables before any other code
 dotenv.config();
+
+// Verify required environment variables
+const requiredEnvVars = ['JWT_SECRET', 'MONGODB_URI'];
+const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+if (missingEnvVars.length > 0) {
+  console.error('Missing required environment variables:', missingEnvVars);
+  process.exit(1);
+}
 
 const app: Express = express();
 const port = process.env.PORT || 5000;
@@ -56,13 +65,21 @@ const allowedOrigins = process.env.NODE_ENV === 'production'
   ? [process.env.FRONTEND_URL || '', process.env.RENDER_EXTERNAL_URL || '']
   : ['http://localhost:3000', 'http://localhost:5173'];
 
+console.log('Allowed Origins:', allowedOrigins);
+console.log('Current Environment:', process.env.NODE_ENV);
+
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      console.log('Request with no origin');
+      return callback(null, true);
+    }
     
+    console.log('Request origin:', origin);
     if (allowedOrigins.indexOf(origin) === -1) {
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      console.log('CORS blocked:', origin);
       return callback(new Error(msg), false);
     }
     return callback(null, true);
@@ -79,16 +96,31 @@ app.use('/uploads', express.static(uploadsDir));
 // Initialize Passport
 app.use(passport.initialize());
 
-// Mount auth routes
-app.use('/api/auth', authRoutes);
+// Add request logging middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  console.log(`${req.method} ${req.path} - Origin: ${req.get('origin')}`);
+  next();
+});
+
+// Mount auth routes with error handling
+app.use('/api/auth', (req: Request, res: Response, next: NextFunction) => {
+  console.log('Auth route accessed:', req.path);
+  next();
+}, authRoutes);
+
 app.use('/api/linkedin', linkedinRoutes);
 
 // Connect to MongoDB
-connectDB();
+connectDB().then(() => {
+  console.log('MongoDB connected successfully');
+}).catch(err => {
+  console.error('MongoDB connection error:', err);
+});
 
 // Serve static files from frontend build in production
 if (process.env.NODE_ENV === 'production') {
   const frontendBuildPath = path.join(__dirname, '../../frontend/dist');
+  console.log('Serving frontend from:', frontendBuildPath);
   app.use(express.static(frontendBuildPath));
 }
 
@@ -322,7 +354,7 @@ app.delete('/resumes/:id', requireAuth, async (req: Request, res: Response) => {
 });
 
 // Error handling middleware
-app.use((err: any, req: Request, res: Response, next: any) => {
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   console.error('Global error handler:', err);
   if (err instanceof multer.MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {
@@ -339,4 +371,6 @@ app.use((err: any, req: Request, res: Response, next: any) => {
 // Start server
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
+  console.log('Environment:', process.env.NODE_ENV);
+  console.log('Frontend URL:', process.env.FRONTEND_URL);
 }); 
