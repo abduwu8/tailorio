@@ -42,13 +42,12 @@ const ResumeUpload = () => {
         throw new Error('No authentication token found');
       }
       
-      console.log('Fetching resumes from:', buildApiUrl('/api/resumes'));
-      const response = await fetch(buildApiUrl('/api/resumes'), {
+      console.log('Fetching resumes from:', buildApiUrl('/resumes'));
+      const response = await fetch(buildApiUrl('/resumes'), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
-        },
-        credentials: 'include'
+        }
       });
 
       if (!response.ok) {
@@ -58,7 +57,12 @@ const ResumeUpload = () => {
 
       const data = await response.json();
       console.log('Fetched resumes:', data);
-      setResumes(data);
+      // Transform the resume paths to include the token for authorized access
+      const transformedData = data.map((resume: ResumeData) => ({
+        ...resume,
+        path: buildFileUrl(resume.path, token)
+      }));
+      setResumes(transformedData);
     } catch (error) {
       console.error('Error fetching resumes:', error);
       setUploadState(prev => ({
@@ -113,13 +117,12 @@ const ResumeUpload = () => {
         throw new Error('No authentication token found');
       }
 
-      console.log('Uploading resume to:', buildApiUrl('/api/upload-resume'));
-      const response = await fetch(buildApiUrl('/api/upload-resume'), {
+      console.log('Uploading resume to:', buildApiUrl('/upload-resume'));
+      const response = await fetch(buildApiUrl('/upload-resume'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
         },
-        credentials: 'include',
         body: formData,
       });
 

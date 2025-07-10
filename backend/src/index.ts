@@ -103,21 +103,7 @@ console.log('Allowed Origins:', allowedOrigins);
 console.log('Current Environment:', process.env.NODE_ENV);
 
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) {
-      console.log('Request with no origin');
-      return callback(null, true);
-    }
-    
-    console.log('Request origin:', origin);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      console.log('CORS blocked:', origin);
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  },
+  origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
   exposedHeaders: ['Content-Range', 'X-Content-Range'],
@@ -138,8 +124,26 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-// Serve uploads directory - Move this before API routes to ensure file access
-app.use('/uploads', express.static(uploadsDir));
+// Protected file access middleware
+const protectedFileAccess = (req: Request, res: Response, next: NextFunction) => {
+  // Check if there's a token in the query params
+  const token = req.query.token as string;
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  // Verify the token
+  passport.authenticate('jwt', { session: false }, (err: any, user: any) => {
+    if (err || !user) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    req.user = user;
+    next();
+  })(req, res, next);
+};
+
+// Serve uploads directory with protected access
+app.use('/uploads', protectedFileAccess, express.static(uploadsDir));
 
 // API Routes
 app.use('/api/auth', authRoutes);
