@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import ResumeText from './ResumeText';
+import { buildApiUrl } from '../../config/api';
 
 interface FileUploadState {
   file: File | null;
@@ -37,7 +38,7 @@ const ResumeUpload = () => {
 
   const fetchResumes = async () => {
     try {
-      const response = await fetch('http://localhost:5000/resumes', {
+      const response = await fetch(buildApiUrl('/resumes'), {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -92,7 +93,7 @@ const ResumeUpload = () => {
         uploadStatus: 'Uploading...'
       }));
 
-      const response = await fetch('http://localhost:5000/upload-resume', {
+      const response = await fetch(buildApiUrl('/upload-resume'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -235,7 +236,7 @@ const ResumeUpload = () => {
             {viewMode === 'pdf' ? (
               <div className="h-[600px]">
                 <iframe
-                  src={selectedResume ? `http://localhost:5000${selectedResume.path}?token=${localStorage.getItem('token')}` : uploadState.preview || ''}
+                  src={selectedResume ? buildApiUrl(selectedResume.path) + `?token=${localStorage.getItem('token')}` : uploadState.preview || ''}
                   className="w-full h-full"
                   title="Resume Preview"
                 />
