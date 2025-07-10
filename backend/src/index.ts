@@ -19,6 +19,40 @@ import './config/passport';
 // Load environment variables before any other code
 dotenv.config();
 
+// Helper function to extract text from PDF
+async function extractTextFromPDF(filePath: string) {
+  try {
+    console.log('Reading file from:', filePath);
+    const dataBuffer = fs.readFileSync(filePath);
+    console.log('File read successfully, size:', dataBuffer.length);
+    
+    const data = await pdf(dataBuffer);
+    console.log('PDF parsed successfully');
+    const text = data.text;
+    
+    // Basic text analysis
+    const wordCount = text.trim().split(/\s+/).length;
+    const characterCount = text.length;
+
+    console.log('Text extracted:', {
+      wordCount,
+      characterCount,
+      textPreview: text.substring(0, 100) + '...'
+    });
+
+    return {
+      text,
+      analysis: {
+        wordCount,
+        characterCount
+      }
+    };
+  } catch (error) {
+    console.error('Error extracting text from PDF:', error);
+    throw error;
+  }
+}
+
 // Verify required environment variables
 const requiredEnvVars = ['JWT_SECRET', 'MONGODB_URI'];
 const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
@@ -62,7 +96,7 @@ const upload = multer({
 
 // Middleware
 const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? [process.env.FRONTEND_URL || '', process.env.RENDER_EXTERNAL_URL || '']
+  ? [process.env.FRONTEND_URL || '', process.env.RENDER_EXTERNAL_URL || '', 'https://tailorio.onrender.com']
   : ['http://localhost:3000', 'http://localhost:5173'];
 
 console.log('Allowed Origins:', allowedOrigins);
@@ -91,7 +125,6 @@ app.use(cors({
 }));
 
 app.use(express.json());
-app.use('/uploads', express.static(uploadsDir));
 
 // Initialize Passport
 app.use(passport.initialize());
@@ -102,90 +135,12 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-// Mount auth routes with error handling
-app.use('/api/auth', (req: Request, res: Response, next: NextFunction) => {
-  console.log('Auth route accessed:', req.path);
-  next();
-}, authRoutes);
-
+// API Routes - Mount them before static file serving
+app.use('/api/auth', authRoutes);
 app.use('/api/linkedin', linkedinRoutes);
 
-// Connect to MongoDB
-connectDB().then(() => {
-  console.log('MongoDB connected successfully');
-}).catch(err => {
-  console.error('MongoDB connection error:', err);
-});
-
-// Serve static files from frontend build in production
-if (process.env.NODE_ENV === 'production') {
-  const frontendBuildPath = path.join(__dirname, '../../frontend/dist');
-  console.log('Serving frontend from:', frontendBuildPath);
-  app.use(express.static(frontendBuildPath));
-}
-
-// API Routes
-// Basic route with MongoDB connection status
-app.get('/', (req: Request, res: Response) => {
-  const dbState = mongoose.connection.readyState;
-  let status;
-  
-  switch (dbState) {
-    case 0:
-      status = 'MongoDB disconnected';
-      break;
-    case 1:
-      status = 'MongoDB connected successfully!';
-      break;
-    case 2:
-      status = 'MongoDB connecting...';
-      break;
-    case 3:
-      status = 'MongoDB disconnecting...';
-      break;
-    default:
-      status = 'Unknown MongoDB connection state';
-  }
-  
-  res.send(status);
-});
-
-// Helper function to extract text from PDF
-async function extractTextFromPDF(filePath: string) {
-  try {
-    console.log('Reading file from:', filePath);
-    const dataBuffer = fs.readFileSync(filePath);
-    console.log('File read successfully, size:', dataBuffer.length);
-    
-    const data = await pdf(dataBuffer);
-    console.log('PDF parsed successfully');
-    const text = data.text;
-    
-    // Basic text analysis
-    const wordCount = text.trim().split(/\s+/).length;
-    const characterCount = text.length;
-
-    console.log('Text extracted:', {
-      wordCount,
-      characterCount,
-      textPreview: text.substring(0, 100) + '...'
-    });
-
-    return {
-      text,
-      analysis: {
-        wordCount,
-        characterCount
-      }
-    };
-  } catch (error) {
-    console.error('Error extracting text from PDF:', error);
-    throw error;
-  }
-}
-
 // Protected Resume Routes
-app.post('/upload-resume', requireAuth, upload.single('resume'), async (req: Request, res: Response) => {
+app.post('/api/upload-resume', requireAuth, upload.single('resume'), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -208,7 +163,7 @@ app.post('/upload-resume', requireAuth, upload.single('resume'), async (req: Req
       path: `/uploads/${req.file.filename}`,
       extractedText: text,
       textAnalysis: analysis,
-      userId: (req.user as any)._id // Add user ID to the resume
+      userId: (req.user as any)._id
     });
 
     await resume.save();
@@ -231,12 +186,11 @@ app.post('/upload-resume', requireAuth, upload.single('resume'), async (req: Req
 });
 
 // Get all resumes for the authenticated user
-app.get('/resumes', requireAuth, async (req: Request, res: Response) => {
+app.get('/api/resumes', requireAuth, async (req: Request, res: Response) => {
   try {
     console.log('Fetching resumes for user:', (req.user as any)._id);
     const resumes = await Resume.find({ userId: (req.user as any)._id }).sort({ uploadDate: -1 });
     console.log('Found', resumes.length, 'resumes');
-    // Transform _id to id in response
     const transformedResumes = resumes.map(resume => ({
       id: resume._id,
       fileName: resume.fileName,
@@ -254,7 +208,7 @@ app.get('/resumes', requireAuth, async (req: Request, res: Response) => {
 });
 
 // Get single resume by ID (only if it belongs to the authenticated user)
-app.get('/resumes/:id', requireAuth, async (req: Request, res: Response) => {
+app.get('/api/resumes/:id', requireAuth, async (req: Request, res: Response) => {
   try {
     console.log('Fetching resume with ID:', req.params.id);
     const resume = await Resume.findOne({
@@ -285,7 +239,7 @@ app.get('/resumes/:id', requireAuth, async (req: Request, res: Response) => {
 });
 
 // Get extracted text for a resume (only if it belongs to the authenticated user)
-app.get('/resumes/:id/text', requireAuth, async (req: Request, res: Response) => {
+app.get('/api/resumes/:id/text', requireAuth, async (req: Request, res: Response) => {
   try {
     console.log('Fetching text for resume ID:', req.params.id);
     const resume = await Resume.findOne({
@@ -314,7 +268,7 @@ app.get('/resumes/:id/text', requireAuth, async (req: Request, res: Response) =>
 });
 
 // Delete a resume
-app.delete('/resumes/:id', requireAuth, async (req: Request, res: Response) => {
+app.delete('/api/resumes/:id', requireAuth, async (req: Request, res: Response) => {
   try {
     console.log('Deleting resume with ID:', req.params.id);
     
@@ -353,7 +307,29 @@ app.delete('/resumes/:id', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-// Error handling middleware
+// Serve uploads directory
+app.use('/uploads', express.static(uploadsDir));
+
+// Connect to MongoDB
+connectDB().then(() => {
+  console.log('MongoDB connected successfully');
+}).catch(err => {
+  console.error('MongoDB connection error:', err);
+});
+
+// Serve static files from frontend build in production
+if (process.env.NODE_ENV === 'production') {
+  const frontendBuildPath = path.join(__dirname, '../../frontend/dist');
+  console.log('Serving frontend from:', frontendBuildPath);
+  app.use(express.static(frontendBuildPath));
+
+  // Handle client-side routing - must be after API routes
+  app.get('*', (req: Request, res: Response) => {
+    res.sendFile(path.join(frontendBuildPath, 'index.html'));
+  });
+}
+
+// Global error handling middleware
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   console.error('Global error handler:', err);
   if (err instanceof multer.MulterError) {
