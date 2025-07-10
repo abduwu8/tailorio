@@ -44,19 +44,16 @@ const ResumeUpload = () => {
       
       console.log('Fetching resumes from:', buildApiUrl('/resumes'));
       const response = await fetch(buildApiUrl('/resumes'), {
-        method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
+          'Accept': 'application/json'
         },
         credentials: 'include'
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Error response:', errorData);
-        throw new Error(errorData.error || `Failed to fetch resumes: ${response.status}`);
+        throw new Error(errorData.message || `Failed to fetch resumes: ${response.status}`);
       }
 
       const data = await response.json();
@@ -128,13 +125,12 @@ const ResumeUpload = () => {
           'Authorization': `Bearer ${token}`
         },
         credentials: 'include',
-        body: formData
+        body: formData,
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Upload error response:', errorData);
-        throw new Error(errorData.error || `Upload failed: ${response.status}`);
+        throw new Error(errorData.message || `Upload failed: ${response.status}`);
       }
 
       const data = await response.json();

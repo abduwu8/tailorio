@@ -94,42 +94,24 @@ const upload = multer({
   }
 });
 
-// Middleware for logging
-app.use((req: Request, res: Response, next: NextFunction) => {
-  console.log(`${req.method} ${req.path} - Origin: ${req.get('origin')}`);
-  next();
-});
+// Middleware
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? ['https://tailorio.onrender.com', 'https://puppet-frontend.onrender.com']
+  : ['http://localhost:3000', 'http://localhost:5173'];
 
-// CORS configuration
-const allowedOrigins = [
-  'http://localhost:5173',  // Local development
-  process.env.FRONTEND_URL, // Optional environment variable for flexibility
-].filter(Boolean); // Remove any undefined values
+console.log('Allowed Origins:', allowedOrigins);
+console.log('Current Environment:', process.env.NODE_ENV);
 
-// In production, if frontend and backend are on same domain, we don't need CORS
-const corsOptions = process.env.NODE_ENV === 'production' ? {} : {
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) {
-      return callback(null, true);
-    }
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.warn(`Origin ${origin} not allowed by CORS`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
+// Simple CORS configuration
+app.use(cors({
+  origin: true, // Allow all origins temporarily to debug
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
   exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  credentials: true,
   maxAge: 86400,
   optionsSuccessStatus: 200
-};
-
-app.use(cors(corsOptions));
+}));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -137,10 +119,16 @@ app.use(express.urlencoded({ extended: true }));
 // Initialize Passport
 app.use(passport.initialize());
 
+// Add request logging middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  console.log(`${req.method} ${req.path} - Origin: ${req.get('origin')}`);
+  next();
+});
+
 // Protected file access middleware
 const protectedFileAccess = (req: Request, res: Response, next: NextFunction) => {
-  // Check if there's a token in the query params or Authorization header
-  const token = req.query.token as string || req.headers.authorization?.split(' ')[1];
+  // Check if there's a token in the query params
+  const token = req.query.token as string;
   if (!token) {
     return res.status(401).json({ error: 'No token provided' });
   }
@@ -211,22 +199,9 @@ app.post('/api/upload-resume', requireAuth, upload.single('resume'), async (req:
 // Get all resumes for the authenticated user
 app.get('/api/resumes', requireAuth, async (req: Request, res: Response) => {
   try {
-    const userId = (req.user as any)._id;
-    console.log('Fetching resumes for user:', userId);
-    
-    // Add validation for user ID
-    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
-      console.error('Invalid user ID:', userId);
-      return res.status(400).json({ error: 'Invalid user ID' });
-    }
-
-    const resumes = await Resume.find({ userId }).sort({ uploadDate: -1 });
-    console.log('Found', resumes.length, 'resumes for user:', userId);
-    
-    if (!resumes.length) {
-      console.log('No resumes found for user:', userId);
-    }
-
+    console.log('Fetching resumes for user:', (req.user as any)._id);
+    const resumes = await Resume.find({ userId: (req.user as any)._id }).sort({ uploadDate: -1 });
+    console.log('Found', resumes.length, 'resumes');
     const transformedResumes = resumes.map(resume => ({
       id: resume._id,
       fileName: resume.fileName,
@@ -236,45 +211,28 @@ app.get('/api/resumes', requireAuth, async (req: Request, res: Response) => {
       extractedText: resume.extractedText,
       textAnalysis: resume.textAnalysis
     }));
-
-    console.log('Successfully transformed resumes for response');
     res.json(transformedResumes);
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching resumes:', error);
-    // Send a more detailed error message in development
-    const errorMessage = process.env.NODE_ENV === 'development' 
-      ? `Error fetching resumes: ${error.message || 'Unknown error'}`
-      : 'Error fetching resumes';
-    res.status(500).json({ error: errorMessage });
+    res.status(500).json({ error: 'Error fetching resumes' });
   }
 });
 
 // Get single resume by ID (only if it belongs to the authenticated user)
 app.get('/api/resumes/:id', requireAuth, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    const userId = (req.user as any)._id;
-    
-    console.log('Fetching resume:', { id, userId });
-
-    // Validate resume ID
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      console.error('Invalid resume ID:', id);
-      return res.status(400).json({ error: 'Invalid resume ID' });
-    }
-
+    console.log('Fetching resume with ID:', req.params.id);
     const resume = await Resume.findOne({
-      _id: id,
-      userId
+      _id: req.params.id,
+      userId: (req.user as any)._id
     });
     
     if (!resume) {
-      console.log('Resume not found:', { id, userId });
+      console.log('Resume not found:', req.params.id);
       return res.status(404).json({ error: 'Resume not found' });
     }
     
-    console.log('Resume found:', { id: resume._id, originalName: resume.originalName });
-    
+    console.log('Resume found:', resume.originalName);
     // Transform _id to id in response
     res.json({
       id: resume._id,
@@ -285,13 +243,9 @@ app.get('/api/resumes/:id', requireAuth, async (req: Request, res: Response) => 
       extractedText: resume.extractedText,
       textAnalysis: resume.textAnalysis
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching resume:', error);
-    // Send a more detailed error message in development
-    const errorMessage = process.env.NODE_ENV === 'development' 
-      ? `Error fetching resume: ${error.message || 'Unknown error'}`
-      : 'Error fetching resume';
-    res.status(500).json({ error: errorMessage });
+    res.status(500).json({ error: 'Error fetching resume' });
   }
 });
 
@@ -389,19 +343,18 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-// Global error handling middleware
+// Error handling middleware
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   console.error('Global error handler:', err);
-  if (err instanceof multer.MulterError) {
-    if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({
-        error: 'File size is too large. Maximum size is 10MB'
-      });
-    }
+  if (err.message.includes('CORS')) {
+    return res.status(403).json({
+      error: 'CORS Error',
+      message: err.message,
+      origin: req.get('origin'),
+      allowedOrigins
+    });
   }
-  res.status(500).json({
-    error: err.message || 'Something went wrong'
-  });
+  res.status(500).json({ error: err.message });
 });
 
 // Start server
