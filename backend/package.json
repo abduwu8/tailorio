@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node dist/index.js",
     "dev": "nodemon src/index.ts",
-    "build": "tsc"
+    "build": "tsc --project tsconfig.json",
+    "postinstall": "npm run build"
   },
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -29,7 +30,8 @@
     "passport-local": "^1.0.0",
     "pdf-parse": "^1.1.1",
     "pdf.js-extract": "^0.2.1",
-    "puppeteer": "^24.12.1"
+    "puppeteer": "^24.12.1",
+    "typescript": "^5.3.3"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
@@ -38,7 +40,6 @@
     "@types/node": "^20.10.5",
     "@types/pdf-parse": "^1.1.5",
     "nodemon": "^3.0.2",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
+    "ts-node": "^10.9.2"
   }
 }

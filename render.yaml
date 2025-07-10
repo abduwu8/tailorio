@@ -3,10 +3,19 @@ services:
     name: puppet-app
     env: node
     buildCommand: |
-      cd frontend && npm install && npm run build && \
-      cd ../backend && npm install && \
+      # Build frontend
+      cd frontend
+      npm install
       npm run build
-    startCommand: cd backend && node dist/index.js
+      cd ..
+      # Build backend
+      cd backend
+      npm install
+      npm run build
+      cd ..
+    startCommand: |
+      cd backend
+      node dist/index.js
     envVars:
       - key: NODE_ENV
         value: production
