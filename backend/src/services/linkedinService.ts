@@ -13,9 +13,6 @@ interface JobDetails {
 
 export async function scrapeLinkedInJob(jobUrl: string): Promise<JobDetails> {
   console.log('Initializing Puppeteer...');
-  const execPath = process.env.NODE_ENV === 'production' ? '/usr/bin/google-chrome' : process.env.PUPPETEER_EXECUTABLE_PATH;
-  console.log('Using Chrome executable path:', execPath);
-  
   const browser = await puppeteer.launch({
     headless: true,
     args: [
@@ -30,7 +27,7 @@ export async function scrapeLinkedInJob(jobUrl: string): Promise<JobDetails> {
       '--disable-web-security',
       '--disable-features=IsolateOrigins,site-per-process'
     ],
-    executablePath: execPath
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
   });
 
   try {
