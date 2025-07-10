@@ -39,26 +39,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     setError(null);
     try {
-      console.log('Attempting login to:', buildApiUrl('/auth/login'));
-      const response = await fetch(buildApiUrl('/auth/login'), {
+      const loginUrl = buildApiUrl('/auth/login');
+      console.log('Attempting login to:', loginUrl);
+      const response = await fetch(loginUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         body: JSON.stringify({ email, password }),
         credentials: 'include',
+        mode: 'cors',
       });
 
-      console.log('Login response status:', response.status);
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Invalid email or password');
+        } else if (response.status === 404) {
+          throw new Error('Login service not found. Please check the server URL.');
+        } else {
+          const errorData = await response.json().catch(() => ({ message: 'Unknown error occurred' }));
+          throw new Error(errorData.message || `Login failed with status ${response.status}`);
+        }
+      }
+
       const data = await response.json().catch(e => {
         console.error('Error parsing JSON:', e);
         throw new Error('Failed to parse server response');
       });
-      console.log('Login response data:', data);
-
-      if (!response.ok) {
-        throw new Error(data.message || `Login failed with status ${response.status}`);
-      }
+      console.log('Login successful');
 
       setToken(data.token);
       setUser(data.user);
@@ -72,6 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.removeItem('user');
       setToken(null);
       setUser(null);
+      throw err; // Re-throw to let the component handle the error
     } finally {
       setIsLoading(false);
     }

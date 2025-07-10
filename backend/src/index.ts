@@ -318,30 +318,33 @@ app.delete('/api/resumes/:id', requireAuth, async (req: Request, res: Response) 
   }
 });
 
-// Connect to MongoDB
-connectDB().then(() => {
-  console.log('MongoDB connected successfully');
-}).catch(err => {
-  console.error('MongoDB connection error:', err);
-});
-
-// Serve static files in production
+// Serve static frontend files in production
 if (process.env.NODE_ENV === 'production') {
-  // Serve frontend static files
+  // Serve static files from frontend/dist
   const frontendBuildPath = path.join(__dirname, '../../frontend/dist');
+  console.log('Serving frontend from:', frontendBuildPath);
   app.use(express.static(frontendBuildPath));
-}
 
-// Catch-all route to serve the frontend in production
-if (process.env.NODE_ENV === 'production') {
-  app.get('*', (req, res) => {
-    // Don't serve frontend for API routes
-    if (req.path.startsWith('/api/')) {
+  // Handle client-side routing - return index.html for all non-API routes
+  app.get('*', (req: Request, res: Response) => {
+    // Skip API routes
+    if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) {
       return res.status(404).json({ error: 'API endpoint not found' });
     }
-    res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
+    res.sendFile(path.join(frontendBuildPath, 'index.html'));
   });
 }
+
+// Start the server
+connectDB().then(() => {
+  app.listen(port, () => {
+    console.log(`⚡️[server]: Server is running at http://localhost:${port}`);
+    console.log('Environment:', process.env.NODE_ENV);
+  });
+}).catch(error => {
+  console.error('Failed to connect to MongoDB:', error);
+  process.exit(1);
+});
 
 // Error handling middleware
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
@@ -355,11 +358,4 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     });
   }
   res.status(500).json({ error: err.message });
-});
-
-// Start server
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-  console.log('Environment:', process.env.NODE_ENV);
-  console.log('Frontend URL:', process.env.FRONTEND_URL);
 }); 
