@@ -103,7 +103,21 @@ console.log('Allowed Origins:', allowedOrigins);
 console.log('Current Environment:', process.env.NODE_ENV);
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) {
+      console.log('Request with no origin');
+      return callback(null, true);
+    }
+    
+    console.log('Request origin:', origin);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      console.log('CORS blocked:', origin);
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
   exposedHeaders: ['Content-Range', 'X-Content-Range'],
@@ -324,15 +338,21 @@ connectDB().then(() => {
   console.error('MongoDB connection error:', err);
 });
 
-// Serve static files from frontend build in production
+// Serve static files in production
 if (process.env.NODE_ENV === 'production') {
+  // Serve frontend static files
   const frontendBuildPath = path.join(__dirname, '../../frontend/dist');
-  console.log('Serving frontend from:', frontendBuildPath);
   app.use(express.static(frontendBuildPath));
+}
 
-  // Handle client-side routing - must be after API routes
-  app.get('*', (req: Request, res: Response) => {
-    res.sendFile(path.join(frontendBuildPath, 'index.html'));
+// Catch-all route to serve the frontend in production
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    // Don't serve frontend for API routes
+    if (req.path.startsWith('/api/')) {
+      return res.status(404).json({ error: 'API endpoint not found' });
+    }
+    res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
   });
 }
 

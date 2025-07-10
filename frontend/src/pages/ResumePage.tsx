@@ -34,7 +34,7 @@ const ResumePage = () => {
 
   const fetchResumes = async () => {
     try {
-      const response = await fetch('http://localhost:5000/resumes', {
+      const response = await fetch('http://localhost:5000/api/resumes', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }

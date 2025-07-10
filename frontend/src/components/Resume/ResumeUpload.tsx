@@ -47,7 +47,8 @@ const ResumeUpload = () => {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
-        }
+        },
+        credentials: 'include'
       });
 
       if (!response.ok) {
@@ -123,6 +124,7 @@ const ResumeUpload = () => {
         headers: {
           'Authorization': `Bearer ${token}`
         },
+        credentials: 'include',
         body: formData,
       });
 
@@ -140,6 +142,7 @@ const ResumeUpload = () => {
         uploadStatus: 'File uploaded successfully!'
       });
       
+      // Fetch resumes after successful upload
       await fetchResumes();
     } catch (error) {
       console.error('Upload error:', error);
