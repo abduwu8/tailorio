@@ -27,7 +27,9 @@ export async function scrapeLinkedInJob(jobUrl: string): Promise<JobDetails> {
       '--disable-web-security',
       '--disable-features=IsolateOrigins,site-per-process'
     ],
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
+    executablePath: process.env.NODE_ENV === 'production' 
+      ? '/usr/bin/google-chrome'
+      : process.env.PUPPETEER_EXECUTABLE_PATH || undefined
   });
 
   try {
