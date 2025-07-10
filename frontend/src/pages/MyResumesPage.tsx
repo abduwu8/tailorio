@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Card from '../components/Layout/Card';
+import { buildApiUrl, buildFileUrl } from '../config/api';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface Resume {
   id: string;
@@ -19,17 +22,23 @@ const MyResumesPage = () => {
   const [uploadStatus, setUploadStatus] = useState<string>('');
   const [selectedResume, setSelectedResume] = useState<Resume | null>(null);
   const [deleteStatus, setDeleteStatus] = useState<string>('');
+  const { token, logout } = useAuth();
+  const navigate = useNavigate();
 
   const fetchResumes = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/resumes', {
+      const response = await fetch(buildApiUrl('/resumes'), {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         }
       });
       if (response.ok) {
         const data = await response.json();
         setResumes(data);
+      } else if (response.status === 401) {
+        // Token expired or invalid
+        logout();
+        navigate('/login');
       }
     } catch (error) {
       console.error('Error fetching resumes:', error);
@@ -37,8 +46,12 @@ const MyResumesPage = () => {
   };
 
   useEffect(() => {
+    if (!token) {
+      navigate('/login');
+      return;
+    }
     fetchResumes();
-  }, []);
+  }, [token, navigate]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -53,7 +66,7 @@ const MyResumesPage = () => {
   };
 
   const handleUpload = async () => {
-    if (!file) {
+    if (!file || !token) {
       setUploadStatus('Please select a file first');
       return;
     }
@@ -64,10 +77,10 @@ const MyResumesPage = () => {
     try {
       setUploadStatus('Uploading...');
 
-      const response = await fetch('http://localhost:5000/api/upload-resume', {
+      const response = await fetch(buildApiUrl('/upload-resume'), {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
         body: formData,
       });
@@ -82,6 +95,9 @@ const MyResumesPage = () => {
         }
         // Refresh the resume list
         fetchResumes();
+      } else if (response.status === 401) {
+        logout();
+        navigate('/login');
       } else {
         throw new Error('Upload failed');
       }
@@ -92,16 +108,16 @@ const MyResumesPage = () => {
   };
 
   const handleDelete = async (resumeId: string) => {
-    if (!window.confirm('Are you sure you want to delete this resume?')) {
+    if (!window.confirm('Are you sure you want to delete this resume?') || !token) {
       return;
     }
 
     try {
       setDeleteStatus('Deleting...');
-      const response = await fetch(`http://localhost:5000/api/resumes/${resumeId}`, {
+      const response = await fetch(buildApiUrl(`/resumes/${resumeId}`), {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         }
       });
 
@@ -112,6 +128,9 @@ const MyResumesPage = () => {
           setSelectedResume(null);
         }
         setTimeout(() => setDeleteStatus(''), 3000);
+      } else if (response.status === 401) {
+        logout();
+        navigate('/login');
       } else {
         throw new Error('Failed to delete resume');
       }
@@ -130,6 +149,10 @@ const MyResumesPage = () => {
       minute: '2-digit'
     });
   };
+
+  if (!token) {
+    return null;
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -216,7 +239,7 @@ const MyResumesPage = () => {
 
               <div className="mt-auto">
                 <a
-                  href={`http://localhost:5000${resume.path}?token=${localStorage.getItem('token')}`}
+                  href={buildFileUrl(resume.path, token)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center text-sm text-secondary hover:text-secondary/80 transition-colors"
