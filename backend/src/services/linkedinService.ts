@@ -18,9 +18,16 @@ export async function scrapeLinkedInJob(jobUrl: string): Promise<JobDetails> {
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-accelerated-2d-canvas',
+      '--no-first-run',
+      '--no-zygote',
+      '--disable-gpu',
+      '--single-process',
       '--disable-web-security',
       '--disable-features=IsolateOrigins,site-per-process'
-    ]
+    ],
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
   });
 
   try {
@@ -33,14 +40,41 @@ export async function scrapeLinkedInJob(jobUrl: string): Promise<JobDetails> {
     // Set viewport to a common desktop size
     await page.setViewport({ width: 1920, height: 1080 });
 
+    // Add extra headers to avoid detection
+    await page.setExtraHTTPHeaders({
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Connection': 'keep-alive',
+      'Upgrade-Insecure-Requests': '1',
+      'Sec-Fetch-Site': 'none',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-User': '?1',
+      'Sec-Fetch-Dest': 'document'
+    });
+
     console.log('Navigating to LinkedIn job URL:', jobUrl);
     await page.goto(jobUrl, { 
       waitUntil: 'networkidle0',
       timeout: 60000 // 60 seconds timeout
     });
 
-    // Wait for the main content to load
-    await page.waitForSelector('.top-card-layout__card', { timeout: 10000 });
+    // Wait for the main content to load with multiple selector attempts
+    try {
+      await Promise.race([
+        page.waitForSelector('.top-card-layout__card', { timeout: 10000 }),
+        page.waitForSelector('.job-details-jobs-unified-top-card__content', { timeout: 10000 }),
+        page.waitForSelector('.jobs-unified-top-card', { timeout: 10000 })
+      ]);
+    } catch (error) {
+      console.log('Initial selector wait failed, trying alternative approach...');
+      // If the main selectors fail, wait for any job-related content
+      await page.waitForFunction(() => {
+        return document.body.innerText.includes('job') || 
+               document.body.innerText.includes('Job Description') ||
+               document.body.innerText.includes('About the job');
+      }, { timeout: 15000 });
+    }
 
     console.log('Page loaded, extracting job details...');
     // Extract job details
@@ -189,8 +223,12 @@ export async function scrapeLinkedInJob(jobUrl: string): Promise<JobDetails> {
     });
     throw new Error(`Failed to scrape LinkedIn job: ${error instanceof Error ? error.message : 'Unknown error'}`);
   } finally {
-    console.log('Closing browser...');
-    await browser.close();
+    try {
+      console.log('Closing browser...');
+      await browser.close();
+    } catch (error) {
+      console.error('Error closing browser:', error);
+    }
   }
 }
 

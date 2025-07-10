@@ -3,6 +3,17 @@ services:
     name: puppet-app
     env: node
     buildCommand: |
+      # Install Chrome for Puppeteer
+      apt-get update && apt-get install -y \
+        chromium \
+        chromium-sandbox \
+        fonts-ipafont-gothic \
+        fonts-wqy-zenhei \
+        fonts-thai-tlwg \
+        fonts-kacst \
+        fonts-freefont-ttf \
+        libxss1 \
+        --no-install-recommends
       # Build frontend
       cd frontend
       npm install
@@ -21,6 +32,8 @@ services:
         value: production
       - key: PORT
         value: 8080
+      - key: PUPPETEER_EXECUTABLE_PATH
+        value: /usr/bin/chromium
     disk:
       name: uploads
       mountPath: /opt/render/project/src/backend/uploads
