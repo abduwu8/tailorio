@@ -2,9 +2,33 @@ services:
   - type: web
     name: puppet
     env: node
-    buildCommand: npm install && npm run build
-    startCommand: npm start
+    buildCommand: |
+      cd backend
+      npm install
+      npm run build
+      cd ../frontend
+      npm install
+      npm run build
+      cd ..
+    startCommand: cd backend && npm start
     envVars:
       - key: NODE_ENV
         value: production
-        sync: false 
+      - key: PORT
+        value: "3001"
+      - key: GROQ_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: "7d"
+      - key: MONGODB_URI
+        sync: false
+      - key: FRONTEND_URL
+        value: "https://puppet.onrender.com"
+      - key: SCRAPER_WORKER_URL
+        value: "https://linkedin-scraper.sigmasigma.workers.dev"
+      - key: VITE_GROQ_API_KEY
+        sync: false
+      - key: VITE_API_URL
+        value: "https://puppet.onrender.com/api" 

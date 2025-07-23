@@ -6,9 +6,9 @@
   "scripts": {
     "start": "node dist/index.js",
     "dev": "nodemon src/index.ts",
-    "build": "tsc --project tsconfig.json",
-    "postinstall": "npm run build && node node_modules/puppeteer/install.js",
-    "verify": "node scripts/verify-build.js"
+    "build": "tsc --project tsconfig.json && npm run copy-config",
+    "copy-config": "mkdir -p dist/config && cp -r src/config/*.json dist/config/ 2>/dev/null || :",
+    "postinstall": "npm run build"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
@@ -24,7 +24,8 @@
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
     "pdf-parse": "^1.1.1",
-    "pdf.js-extract": "^0.2.1"
+    "pdf.js-extract": "^0.2.1",
+    "typescript": "^5.3.3"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -38,8 +39,7 @@
     "@types/passport-local": "^1.0.38",
     "@types/pdf-parse": "^1.1.5",
     "nodemon": "^3.0.2",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
+    "ts-node": "^10.9.2"
   },
   "engines": {
     "node": ">=18.0.0"

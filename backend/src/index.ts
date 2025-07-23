@@ -118,7 +118,7 @@ console.log('Current Environment:', process.env.NODE_ENV);
 
 // Simple CORS configuration
 app.use(cors({
-  origin: true, // Allow all origins temporarily to debug
+  origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
   exposedHeaders: ['Content-Range', 'X-Content-Range'],
@@ -337,16 +337,22 @@ if (process.env.NODE_ENV === 'production') {
   // Serve static files from frontend/dist
   const frontendBuildPath = path.join(__dirname, '../../frontend/dist');
   console.log('Serving frontend from:', frontendBuildPath);
-  app.use(express.static(frontendBuildPath));
+  
+  // Ensure the frontend build directory exists
+  if (fs.existsSync(frontendBuildPath)) {
+    app.use(express.static(frontendBuildPath));
 
-  // Handle client-side routing - return index.html for all non-API routes
-  app.get('*', (req: Request, res: Response) => {
-    // Skip API routes
-    if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) {
-      return res.status(404).json({ error: 'API endpoint not found' });
-    }
-    res.sendFile(path.join(frontendBuildPath, 'index.html'));
-  });
+    // Handle client-side routing - return index.html for all non-API routes
+    app.get('*', (req: Request, res: Response) => {
+      // Skip API routes and uploads
+      if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) {
+        return res.status(404).json({ error: 'API endpoint not found' });
+      }
+      res.sendFile(path.join(frontendBuildPath, 'index.html'));
+    });
+  } else {
+    console.warn('Frontend build directory not found:', frontendBuildPath);
+  }
 }
 
 // Start the server
