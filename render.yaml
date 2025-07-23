@@ -6,18 +6,13 @@ services:
     buildCommand: |
       # Install and build backend
       cd backend
-      npm ci
+      npm install
       npm run build
-      cd ..
-
       # Install and build frontend
-      cd frontend
-      npm ci
+      cd ../frontend
+      npm install
       npm run build
-      cd ..
-    startCommand: |
-      cd backend && npm start &
-      cd frontend && npm run preview
+    startCommand: cd backend && node dist/index.js
     envVars:
       # Backend Environment Variables
       - key: NODE_ENV
