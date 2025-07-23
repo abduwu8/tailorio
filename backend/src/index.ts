@@ -76,7 +76,7 @@ console.log('- FRONTEND_URL:', process.env.FRONTEND_URL);
 console.log('- MongoDB connection configured:', !!process.env.MONGODB_URI);
 
 const app: Express = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 3001;
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, '../uploads');
