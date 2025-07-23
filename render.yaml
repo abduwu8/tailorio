@@ -8,8 +8,7 @@ services:
       cd backend
       npm ci
       npm run build
-      cd dist && npm ci --production
-      cd ../..
+      cd ..
 
       # Install and build frontend
       cd frontend
@@ -17,7 +16,7 @@ services:
       npm run build
       cd ..
     startCommand: |
-      cd backend/dist && NODE_ENV=production node index.js &
+      cd backend && npm start &
       cd frontend && npm run preview
     envVars:
       # Backend Environment Variables

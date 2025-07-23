@@ -2,11 +2,11 @@
   "name": "puppet-backend",
   "version": "1.0.0",
   "description": "Backend for Puppet application",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node dist/index.js",
     "dev": "nodemon src/index.ts",
-    "build": "tsc && cp package*.json dist/",
+    "build": "tsc",
     "postbuild": "cp -r src/config/*.json dist/config/ 2>/dev/null || : && node scripts/verify-build.js",
     "verify": "node scripts/verify-build.js"
   },
