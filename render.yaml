@@ -1,38 +1,10 @@
 services:
-  # Combined Service
   - type: web
-    name: puppet-app
+    name: puppet
     env: node
-    buildCommand: |
-      # Install and build backend
-      cd backend
-      npm install
-      npm run build
-      # Install and build frontend
-      cd ../frontend
-      npm install
-      npm run build
-    startCommand: cd backend && node dist/index.js
+    buildCommand: npm install && npm run build
+    startCommand: npm start
     envVars:
-      # Backend Environment Variables
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: "3001"
-      - key: GROQ_API_KEY
-        sync: false
-      - key: JWT_SECRET
-        generateValue: true
-      - key: JWT_EXPIRES_IN
-        value: "7d"
-      - key: MONGODB_URI
-        sync: false
-      - key: FRONTEND_URL
-        value: "https://puppet-app.onrender.com"
-      - key: SCRAPER_WORKER_URL
-        value: "https://linkedin-scraper.sigmasigma.workers.dev"
-      # Frontend Environment Variables
-      - key: VITE_GROQ_API_KEY
-        sync: false
-      - key: VITE_API_URL
-        value: "https://puppet-app.onrender.com/api" 
+        sync: false 
