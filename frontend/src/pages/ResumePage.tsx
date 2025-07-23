@@ -136,7 +136,7 @@ const ResumePage = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl pb-24" data-testid="resume-page" data-fetch-resumes={fetchResumes}>
+    <div className="container mx-auto px-4 py-8 max-w-4xl pb-12" data-testid="resume-page" data-fetch-resumes={fetchResumes}>
       <h1 className="text-3xl font-semibold mb-8 text-center text-white">Tailor Your Resume</h1>
       
       <div className="space-y-6">
@@ -221,16 +221,17 @@ const ResumePage = () => {
         )}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-sm py-4">
-        <div className="container mx-auto px-4 max-w-4xl text-center">
-          <p className="text-xs text-gray-400">
-            Disclaimer: Our AI-powered resume tailoring service may not be 100% accurate. Please review all suggestions carefully before using them in your final resume.
+      {/* Compact fixed footer with disclaimer */}
+      <div className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-sm py-2">
+        <div className="container mx-auto px-4 max-w-4xl text-center flex items-center justify-center gap-3">
+          <p className="text-[10px] text-gray-400">
+            Disclaimer: Our AI-powered resume tailoring service may not be 100% accurate. Please review all suggestions carefully.
           </p>
           <a 
             href="https://www.linkedin.com/in/abdullahkhannn" 
             target="_blank" 
             rel="noopener noreferrer" 
-            className="text-xs text-white hover:text-gray-200 underline mt-2 inline-block mx-auto"
+            className="text-[10px] text-white/70 hover:text-white underline"
           >
             LinkedIn
           </a>
