@@ -1,11 +1,40 @@
 services:
+  # Backend Service
   - type: web
-    name: puppet
+    name: puppet-backend
     env: node
-    buildCommand: npm install && npm run build
+    rootDir: backend
+    buildCommand: |
+      npm install
+      npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
-      - key: BROWSERLESS_API_KEY
+      - key: GROQ_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: "7d"
+      - key: MONGODB_URI
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: SCRAPER_WORKER_URL
+        value: "https://sigmasigma.workers.dev"
+
+  # Frontend Service
+  - type: web
+    name: puppet-frontend
+    env: node
+    rootDir: frontend
+    buildCommand: |
+      npm install
+      npm run build
+    startCommand: npm run preview
+    envVars:
+      - key: VITE_GROQ_API_KEY
+        sync: false
+      - key: VITE_API_URL
         sync: false 

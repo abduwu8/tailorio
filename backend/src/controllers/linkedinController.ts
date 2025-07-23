@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { scrapeLinkedInJob, generateTailoringPrompt } from '../services/linkedinService';
+import { scrapeLinkedInJob, generateTailoringPrompt } from '../services/linkedinServiceCloud';
 import { tailorResume } from '../services/resumeService';
 
 export const scrapeAndTailorResume = async (req: Request, res: Response) => {
@@ -22,7 +22,7 @@ export const scrapeAndTailorResume = async (req: Request, res: Response) => {
     }
 
     console.log('Starting LinkedIn job scraping for URL:', linkedinUrl);
-    // Scrape job details from LinkedIn
+    // Scrape job details from LinkedIn using the cloud service
     const jobDetails = await scrapeLinkedInJob(linkedinUrl);
     
     // Log detailed job information

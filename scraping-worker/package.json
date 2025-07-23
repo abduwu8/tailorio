@@ -1,0 +1,23 @@
+{
+  "name": "linkedin-scraper-worker",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker for LinkedIn job scraping",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "webpack",
+    "deploy": "npx wrangler deploy",
+    "dev": "npx wrangler dev",
+    "start": "npx wrangler dev",
+    "login": "npx wrangler login"
+  },
+  "dependencies": {
+    "@cloudflare/workers-types": "^4.20240208.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "wrangler": "^3.28.2",
+    "webpack": "^5.90.1",
+    "webpack-cli": "^5.1.4",
+    "ts-loader": "^9.5.1"
+  }
+} 
