@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node dist/index.js",
     "dev": "nodemon src/index.ts",
-    "build": "tsc --project tsconfig.json"
+    "build": "rimraf dist && tsc -p tsconfig.json",
+    "postbuild": "copyfiles -u 1 src/**/*.json dist/"
   },
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -36,7 +37,12 @@
     "@types/multer": "^1.4.11",
     "@types/node": "^20.10.5",
     "@types/pdf-parse": "^1.1.5",
+    "copyfiles": "^2.4.1",
     "nodemon": "^3.0.2",
+    "rimraf": "^5.0.5",
     "ts-node": "^10.9.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

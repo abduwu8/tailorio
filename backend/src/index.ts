@@ -54,12 +54,26 @@ async function extractTextFromPDF(filePath: string) {
 }
 
 // Verify required environment variables
-const requiredEnvVars = ['JWT_SECRET', 'MONGODB_URI'];
+const requiredEnvVars = [
+  'JWT_SECRET',
+  'MONGODB_URI',
+  'SCRAPER_WORKER_URL',
+  'GROQ_API_KEY'
+];
+
 const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
 if (missingEnvVars.length > 0) {
   console.error('Missing required environment variables:', missingEnvVars);
+  console.error('Available environment variables:', Object.keys(process.env));
   process.exit(1);
 }
+
+// Log configuration on startup
+console.log('Environment Configuration:');
+console.log('- NODE_ENV:', process.env.NODE_ENV);
+console.log('- SCRAPER_WORKER_URL configured:', !!process.env.SCRAPER_WORKER_URL);
+console.log('- FRONTEND_URL:', process.env.FRONTEND_URL);
+console.log('- MongoDB connection configured:', !!process.env.MONGODB_URI);
 
 const app: Express = express();
 const port = process.env.PORT || 5000;
